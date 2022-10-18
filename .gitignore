@@ -1,0 +1,6 @@
+# Visual Studio 2019 user specific files
+.vs/
+*.user
+
+# Builds
+x64/*
