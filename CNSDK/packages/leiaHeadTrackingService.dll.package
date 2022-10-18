@@ -1,0 +1,4 @@
+
+user_version 0.6.74
+full_version refs/heads/main-f7cb53e710133befbb7b4ffecccebb750f91bdcb
+dependencies C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/leia/headTracking/service/Release/leiaHeadTrackingService.dll;bin;C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/leia/headTracking/service/Release/leiaHeadTrackingService.lib;lib;C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/_package/windows/release/include/leia;include;C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/_package/windows/release/include/third_party;include

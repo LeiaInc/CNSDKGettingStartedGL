@@ -1,0 +1,41 @@
+#pragma once
+
+#include "leia/headTracking/engine/api.h"
+#include "leia/headTracking/engine/core/camera.hpp"
+#include "leia/headTracking/common/types.hpp"
+
+#include <vector>
+
+namespace leia::head {
+
+struct FaceDetectorConfiguration {
+    // Max number of faces to be detected at the same time, note that the limit for this number depends on a concrete FaceDetector implementation.
+    // Set to zero to use the max possible number.
+    int maxNumOfFaces = 0;
+    FaceDetectorBackend backend = kLeiaFaceDetectorBackendUnknown;
+};
+
+/// Sole purpose of FaceDetector is to detect faces on CameraFrame.
+/// Each DetectedFace consists of two eyes each of which has pixel coordinate
+/// on CameraFrame and its real-world depth (camera space Z-component, not distance from camera).
+class FaceDetector {
+public:
+    virtual int GetMaxNumOfFacesLimit() const = 0;
+    /// Max number of faces that can be detected
+    virtual int GetMaxNumOfFaces() const = 0;
+    /// Set max number of faces that can be detected
+    virtual void SetMaxNumOfFaces(int) = 0;
+
+    virtual FaceDetectorBackend GetBackend() const = 0;
+
+    /// Must be called whenever camera parameters, such as intrinsics, change.
+    virtual void CameraDidChange(CameraIntrinsics const& intrinsics) = 0;
+
+    struct Output {
+        std::vector<DetectedFace> faces;
+    };
+
+    virtual Output& DetectFaces(CameraFrame const& frame) = 0;
+};
+
+} // namespace leia::head
