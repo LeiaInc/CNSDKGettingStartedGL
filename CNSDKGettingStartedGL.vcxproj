@@ -53,7 +53,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)CNSDK\include;$(SolutionDir)CNSDK\include\third_party;$(SolutionDir)CNSDK\include\third_party\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -64,7 +64,8 @@
     </Link>
     <PostBuildEvent>
       <Command>copy "glew\bin\Release\x64\glew32.dll" "$(Platform)\$(Configuration)"
-xcopy "CNSDK\bin\" "$(Platform)\$(Configuration)" /e /y /i /r</Command>
+xcopy "CNSDK\bin\" "$(Platform)\$(Configuration)" /e /y /i /r
+copy "StereoBeerGlass.tga" "$(Platform)\$(Configuration)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -73,7 +74,7 @@ xcopy "CNSDK\bin\" "$(Platform)\$(Configuration)" /e /y /i /r</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)CNSDK\include;$(SolutionDir)CNSDK\include\third_party;$(SolutionDir)CNSDK\include\third_party\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -86,7 +87,8 @@ xcopy "CNSDK\bin\" "$(Platform)\$(Configuration)" /e /y /i /r</Command>
     </Link>
     <PostBuildEvent>
       <Command>copy "glew\bin\Release\x64\glew32.dll" "$(Platform)\$(Configuration)"
-xcopy "CNSDK\bin\" "$(Platform)\$(Configuration)" /e /y /i /r</Command>
+xcopy "CNSDK\bin\" "$(Platform)\$(Configuration)" /e /y /i /r
+copy "StereoBeerGlass.tga" "$(Platform)\$(Configuration)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -21,6 +21,8 @@
 // OpenGL libraries
 #pragma comment(lib, "opengl32.lib")
 
+enum class eDemoMode { Spinning3DCube, StereoImage };
+
 // Global Variables.
 const wchar_t*                 g_windowTitle       = L"CNSDK Getting Started OpenGL Sample";
 const wchar_t*                 g_windowClass       = L"CNSDKGettingStartedGLWindowClass";
@@ -35,11 +37,168 @@ leia::sdk::ThreadedInterlacer* g_interlacer        = nullptr;
 GLuint                         g_stereoFrameBuffer = 0;
 GLuint                         g_stereoTexture     = 0;
 GLuint                         g_stereoDepthBuffer = 0;
+eDemoMode                      g_demoMode          = eDemoMode::Spinning3DCube;
+GLuint                         g_imageTexture      = 0;
 
 void OnError(const wchar_t* msg)
 {
     MessageBox(NULL, msg, L"CNSDKGettingStartedGL", MB_ICONERROR | MB_OK); 
     exit(-1);
+}
+
+bool ReadEntireFile(const char* filename, bool binary, char*& data, size_t& dataSize)
+{
+    const int BUFFERSIZE = 4096;
+    char buffer[BUFFERSIZE];
+
+    // Open file.
+    FILE* f = fopen(filename, binary ? "rb" : "rt");    
+    if (f == NULL)
+        return false;
+
+    data     = nullptr;
+    dataSize = 0;
+
+    while (true)
+    {
+        // Read chunk into buffer.
+        const size_t bytes = (int)fread(buffer, sizeof(char), BUFFERSIZE, f);
+        if (bytes <= 0)
+            break;
+
+        // Extend allocated memory and copy chunk into it.
+        char* newData = new char[dataSize + bytes];
+        if (dataSize > 0)
+        {
+            memcpy(newData, data, dataSize);
+            delete [] data;
+            data = nullptr;
+        }
+        memcpy(newData + dataSize, buffer, bytes);
+        dataSize += bytes;
+        data = newData;
+    }
+
+    // Done and close.
+    fclose(f);
+
+    return dataSize > 0;
+}
+
+bool ReadTGA(const char* filename, int& width, int& height, GLint& format, char*& data, int& dataSize)
+{
+    char* ptr = nullptr;
+    size_t fileSize = 0;
+    if (!ReadEntireFile(filename, true, ptr, fileSize))
+    {
+        OnError(L"Failed to read TGA file.");
+        return false;
+    }
+
+    static std::uint8_t DeCompressed[12] = { 0x0, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+    static std::uint8_t IsCompressed[12] = { 0x0, 0x0, 0xA, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+
+    typedef union PixelInfo
+    {
+        std::uint32_t Colour;
+        struct
+        {
+            std::uint8_t R, G, B, A;
+        };
+    } *PPixelInfo;
+
+    // Read header.
+    std::uint8_t Header[18] = { 0 };
+    memcpy(&Header, ptr, sizeof(Header));
+    ptr += sizeof(Header);
+
+    int bitsPerPixel = 0;
+
+    if (!std::memcmp(DeCompressed, &Header, sizeof(DeCompressed)))
+    {
+        bitsPerPixel = Header[16];
+        width        = Header[13] * 256 + Header[12];
+        height       = Header[15] * 256 + Header[14];
+        dataSize     = ((width * bitsPerPixel + 31) / 32) * 4 * height;
+
+        if ((bitsPerPixel != 24) && (bitsPerPixel != 32))
+        {
+            OnError(L"Invalid TGA file isn't 24/32-bit.");
+            return false;
+        }
+
+        format = (bitsPerPixel == 24) ? GL_BGR : GL_BGRA;
+
+        data = new char[dataSize];
+        memcpy(data, ptr, dataSize);
+    }
+    else if (!std::memcmp(IsCompressed, &Header, sizeof(IsCompressed)))
+    {
+        bitsPerPixel = Header[16];
+        width        = Header[13] * 256 + Header[12];
+        height       = Header[15] * 256 + Header[14];
+        dataSize     = width * height * sizeof(PixelInfo);
+
+        if ((bitsPerPixel != 24) && (bitsPerPixel != 32))
+        {
+            OnError(L"Invalid TGA file isn't 24/32-bit.");
+            return false;
+        }
+
+        format = (bitsPerPixel == 24) ? GL_BGR : GL_BGRA;
+
+        PixelInfo Pixel = { 0 };
+        int CurrentByte = 0;
+        std::size_t CurrentPixel = 0;
+        std::uint8_t ChunkHeader = { 0 };
+        int BytesPerPixel = (bitsPerPixel / 8);
+
+        data = new char[dataSize];
+
+        do
+        {
+            memcpy(&ChunkHeader, ptr, sizeof(ChunkHeader));
+            ptr += sizeof(ChunkHeader);
+
+            if (ChunkHeader < 128)
+            {
+                ++ChunkHeader;
+                for (int I = 0; I < ChunkHeader; ++I, ++CurrentPixel)
+                {
+                    memcpy(&Pixel, ptr, BytesPerPixel);
+                    ptr += BytesPerPixel;
+
+                    data[CurrentByte++] = Pixel.B;
+                    data[CurrentByte++] = Pixel.G;
+                    data[CurrentByte++] = Pixel.R;
+                    if (bitsPerPixel > 24)
+                        data[CurrentByte++] = Pixel.A;
+                }
+            }
+            else
+            {
+                ChunkHeader -= 127;
+                memcpy(&Pixel, ptr, BytesPerPixel);
+                ptr += BytesPerPixel;
+
+                for (int I = 0; I < ChunkHeader; ++I, ++CurrentPixel)
+                {
+                    data[CurrentByte++] = Pixel.B;
+                    data[CurrentByte++] = Pixel.G;
+                    data[CurrentByte++] = Pixel.R;
+                    if (bitsPerPixel > 24)
+                        data[CurrentByte++] = Pixel.A;
+                }
+            }
+        } while (CurrentPixel < (width * height));
+    }
+    else
+    {
+        OnError(L"Invalid TGA file isn't 24/32-bit.");
+        return false;
+    }
+   
+    return true;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -375,15 +534,15 @@ void LinkShader(unsigned int program)
 
 void LoadScene()
 {
-    // Application OpenGL initialization
-    {
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 #ifdef _DEBUG
-        glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT);
 #endif
 
+    if (g_demoMode == eDemoMode::Spinning3DCube)
+    {
         const float vertexPositions[] = {
             // Front face
              100.0f,  100.0f,  100.0f,
@@ -490,6 +649,33 @@ void LoadScene()
 
         g_uniformTransform = glGetUniformLocation(g_shaderProgram, "transform");
     }
+    else if (g_demoMode == eDemoMode::StereoImage)
+    {
+        // Load stereo image.
+        int width = 0;
+        int height = 0;
+        GLint format = 0;
+        char* data = nullptr;
+        int dataSize = 0;
+        ReadTGA("StereoBeerGlass.tga", width, height, format, data, dataSize);
+
+        // Generate and bind new texture.
+        glGenTextures(1, &g_imageTexture);
+        glBindTexture(GL_TEXTURE_2D, g_imageTexture);
+
+        // Set texture properties and image data.
+        GLenum aa= glGetError();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        GLenum bb = glGetError();
+
+        // Set wrap mode.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        // Set filter mode.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }    
 }
 
 void InitializeOffscreenFrameBuffer()
@@ -584,78 +770,90 @@ void Render(HDC hDC, float elapsedTime) {
     const int   viewHeight  = g_sdk->GetViewHeight();
     const float aspectRatio = (float)viewWidth / (float)viewHeight;
 
-    // geometry transform.
-    mat4f geometryTransform;
+    if (g_demoMode == eDemoMode::StereoImage)
     {
-        // Place cube at convergence distance.
-        float convergenceDistance = g_sdk->GetConvergenceDistance();
-        vec3f geometryPos = vec3f(0, convergenceDistance, 0);
+        // Clear backbuffer to green.
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(0.0f, 0.4f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        mat3f geometryOrientation;
-        geometryOrientation.setIdentity();
-        RotateOrientation(geometryOrientation, 0.1f * elapsedTime, 0.2f * elapsedTime, 0.3f * elapsedTime);
-        geometryTransform.create(geometryOrientation, geometryPos);
-    }
-
-    // Clear backbuffer to green.
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClearColor(0.0f, 0.4f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Clear offscreen render-target to blue
-    glBindFramebuffer(GL_FRAMEBUFFER, g_stereoFrameBuffer);
-    glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Render stereo views.
-    for (int i = 0; i < 2; i++)
-    {
-        // Get view offset.
-        const glm::vec3 viewOffset = g_interlacer->GetViewOffset(i);
-
-        // Get shear to apply to perspective projection.
-        const float convergenceDistance = g_sdk->GetConvergenceDistance();
-        const float shearX = -viewOffset.x / convergenceDistance;
-        const float shearY = -viewOffset.z / convergenceDistance;
-
-        // Create camera projection with shear.
-        mat4f cameraProjection;
-        cameraProjection.setPerspective(90.0f * (3.14159f / 180.0f), aspectRatio, 0.01f, 1000.0f);
-        cameraProjection[2][0] = cameraProjection[0][0] * shearX;
-        cameraProjection[2][1] = cameraProjection[1][1] * shearY;
-
-        // Get camera position (including offset from interlacer).
-        vec3f camPos = vec3f(0, 0, 0);
-        camPos += vec3f(viewOffset.x, viewOffset.z, viewOffset.y);
-
-        // Get camera direction.
-        vec3f camDir = vec3f(0, 1, 0);
-
-        // Get camera transform.
-        mat4f cameraTransform;
-        cameraTransform.lookAt(camPos, camPos + camDir, vec3f(0.0f, 0.0f, 1.0f));
-
-        // Compute combined matrix.
-        const mat4f mvp = cameraProjection * cameraTransform * geometryTransform;
-
-        // Set viewport to render to left, then right.
-        glViewport(i * viewWidth, 0, viewWidth, viewHeight);
-
-        glUseProgram(g_shaderProgram);
-        glUniformMatrix4fv(g_uniformTransform, 1, GL_FALSE, &mvp.m[0]);
-        glBindVertexArray(g_vao);
-        const unsigned int triangles = 6 * 2;
-        glDrawElements(GL_TRIANGLES, triangles * 3, GL_UNSIGNED_SHORT, NULL);
-    }    
-    
-    //
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, g_windowWidth, g_windowHeight);
-
-    // Perform interlacing.
-    {
-        g_interlacer->SetInterlaceViewTextureAtlas(g_stereoTexture);
+        // Perform interlacing.
         g_interlacer->SetSourceViewsSize(viewWidth, viewHeight, true);
+        g_interlacer->DoPostProcessPicture(g_windowWidth, g_windowHeight, g_imageTexture);
+    }
+    else if (g_demoMode == eDemoMode::Spinning3DCube)
+    {
+        // geometry transform.
+        mat4f geometryTransform;
+        {
+            // Place cube at convergence distance.
+            float convergenceDistance = g_sdk->GetConvergenceDistance();
+            vec3f geometryPos = vec3f(0, convergenceDistance, 0);
+
+            mat3f geometryOrientation;
+            geometryOrientation.setIdentity();
+            RotateOrientation(geometryOrientation, 0.1f * elapsedTime, 0.2f * elapsedTime, 0.3f * elapsedTime);
+            geometryTransform.create(geometryOrientation, geometryPos);
+        }
+
+        // Clear backbuffer to green.
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(0.0f, 0.4f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Clear offscreen render-target to blue
+        glBindFramebuffer(GL_FRAMEBUFFER, g_stereoFrameBuffer);
+        glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Render stereo views.
+        for (int i = 0; i < 2; i++)
+        {
+            // Get view offset.
+            const glm::vec3 viewOffset = g_interlacer->GetViewOffset(i);
+
+            // Get shear to apply to perspective projection.
+            const float convergenceDistance = g_sdk->GetConvergenceDistance();
+            const float shearX = -viewOffset.x / convergenceDistance;
+            const float shearY = -viewOffset.z / convergenceDistance;
+
+            // Create camera projection with shear.
+            mat4f cameraProjection;
+            cameraProjection.setPerspective(90.0f * (3.14159f / 180.0f), aspectRatio, 0.01f, 1000.0f);
+            cameraProjection[2][0] = cameraProjection[0][0] * shearX;
+            cameraProjection[2][1] = cameraProjection[1][1] * shearY;
+
+            // Get camera position (including offset from interlacer).
+            vec3f camPos = vec3f(0, 0, 0);
+            camPos += vec3f(viewOffset.x, viewOffset.z, viewOffset.y);
+
+            // Get camera direction.
+            vec3f camDir = vec3f(0, 1, 0);
+
+            // Get camera transform.
+            mat4f cameraTransform;
+            cameraTransform.lookAt(camPos, camPos + camDir, vec3f(0.0f, 0.0f, 1.0f));
+
+            // Compute combined matrix.
+            const mat4f mvp = cameraProjection * cameraTransform * geometryTransform;
+
+            // Set viewport to render to left, then right.
+            glViewport(i * viewWidth, 0, viewWidth, viewHeight);
+
+            glUseProgram(g_shaderProgram);
+            glUniformMatrix4fv(g_uniformTransform, 1, GL_FALSE, &mvp.m[0]);
+            glBindVertexArray(g_vao);
+            const unsigned int triangles = 6 * 2;
+            glDrawElements(GL_TRIANGLES, triangles * 3, GL_UNSIGNED_SHORT, NULL);
+        }    
+
+        //
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, g_windowWidth, g_windowHeight);
+
+        // Perform interlacing.
+        g_interlacer->SetSourceViewsSize(viewWidth, viewHeight, true);
+        g_interlacer->SetInterlaceViewTextureAtlas(g_stereoTexture);
         g_interlacer->DoPostProcess(g_windowWidth, g_windowHeight, false, 0);
     }
 
@@ -719,7 +917,8 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
     InitializeCNSDK(hWnd, context);
 
     // Create our stereo (double-wide) frame buffer.
-    InitializeOffscreenFrameBuffer();
+    if (g_demoMode == eDemoMode::Spinning3DCube)
+        InitializeOffscreenFrameBuffer();
 
     // Prepare everything to draw.
     LoadScene();
