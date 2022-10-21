@@ -21,7 +21,7 @@ A repository containing a minimal Windows OpenGL application to showcase the use
 
 For the best experience on Leia displays, use the "Stereo Sliding" interlace mode.
 
-### Typical Application:
+### Typical 3D Application:
 
  * Create window
 
