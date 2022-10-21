@@ -12,6 +12,10 @@ A repository containing a minimal Windows OpenGL application to showcase the use
  * Open CNSDKGettingStartedGL.sln in Visual Studio 2019.
  * Build and run Debug or Release configuration.
  * Almost all code is in CNSDKGettingStartedGL.cpp. To understand how to use Leia CNSDK follow the code in this file.
+ * Two demo modes are available:
+   * Spinning 3D cube (default) - Renders a spinning cube into two views and interlaces them
+   * Stereo image - Loads a stereo image and interlaces it
+ * Set variable g_demoMode in CNSDKGettingStartedGL.cpp to select which demo mode you want
 
 ## CNSDK Usage
 
