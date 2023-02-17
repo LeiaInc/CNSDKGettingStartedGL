@@ -14,7 +14,9 @@ namespace leia::head::service {
 struct ClientListener {
     virtual void OnConnect(ServerInfo const&) = 0;
     virtual void OnFaceDetectorBackendUpdate(FaceDetectorBackend) = 0;
+    virtual void OnFaceDetectorInputTypeUpdate(FaceDetectorInputType) = 0;
     virtual void OnDisconnect() = 0;
+    virtual void OnError(ServiceSpecificError error, std::string const& message) = 0;
 };
 
 struct ClientInitArgs {
@@ -22,6 +24,7 @@ struct ClientInitArgs {
     Platform* platform = nullptr;
 
     ClientListener* listener = nullptr;
+    TrackingStateListener* trackingStateListener = nullptr;
 
     ServerInitArgs server;
 };
@@ -40,6 +43,8 @@ public:
 
     LHT_SERVICE_API
     void SetFaceDetectorBackend(FaceDetectorBackend);
+    LHT_SERVICE_API
+    void SetFaceDetectorInputType(FaceDetectorInputType);
     LHT_SERVICE_API
     void SetServerLogLevel(leia_log_level);
     LHT_SERVICE_API

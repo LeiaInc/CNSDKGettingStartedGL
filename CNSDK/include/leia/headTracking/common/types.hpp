@@ -61,5 +61,12 @@ struct DetectedFace {
 struct Imu {
     float acceleration;
 };
+
+struct TrackingStateListener {
+    // Called right before the first frame arrives
+    virtual void OnTrackingStarted() = 0;
+    // Called after the last frame arrives
+    virtual void OnTrackingStopped() = 0;
+};
     
 } // namespace leia::head

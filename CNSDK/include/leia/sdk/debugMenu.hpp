@@ -1,7 +1,6 @@
 #pragma once
 
-#include "gui.hpp"
-#include "leia/common/log.hpp"
+#include "leia/sdk/gui.hpp"
 #include "leia/sdk/helpers.hpp"
 
 #include <functional>

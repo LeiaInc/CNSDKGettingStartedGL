@@ -39,9 +39,8 @@ public:
         glm::vec3 cameraPosition = glm::vec3(0.0f);
     };
 
-    /// Throws exception if configuration is invalid.
     LHT_ENGINE_API
-    FaceTracker(FaceDetector const& faceDetector, Configuration const& config);
+    FaceTracker();
 
     /// Must be called whenever camera parameters, such as intrinsics, change.
     LHT_ENGINE_API

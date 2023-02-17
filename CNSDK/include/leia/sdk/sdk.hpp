@@ -1,13 +1,20 @@
 #pragma once
 
-#include "helpers.hpp"
+#include "leia/sdk/helpers.hpp"
 
 namespace leia::device { struct Config; }
 
 namespace leia::sdk {
 
+enum class GraphicsAPI {
+    OpenGL,
+    D3D11,
+    D3D12
+};
+
 struct Delegate;
 struct LeiaSharpenParameters;
+struct IThreadedInterlacer;
 struct ThreadedInterlacerInitArgs;
 
 class ML;
@@ -45,8 +52,8 @@ public:
 
 	virtual void        SetProfiling(bool enable) = 0;
 
-	virtual void InitializeFaceTrackingInApp(bool enableFaceTracking, SharedCameraSink*) = 0;
-	virtual void InitializeFaceTrackingInService(bool enableFaceTracking, leia_log_level serverLogLevel) = 0;
+	virtual void InitializeFaceTrackingInApp(bool enableFaceTracking, head::TrackingStateListener*, SharedCameraSink*) = 0;
+	virtual void InitializeFaceTrackingInService(bool enableFaceTracking, head::TrackingStateListener*, leia_log_level serverLogLevel) = 0;
 	virtual void SetFaceTrackingCallback(CLeiaSDKFaceTrackingCallback*) = 0;
 	// Initialize/Release all face tracking related resources.
 	// Consider using StartFaceTracking(false) if face tracking should be temporarily paused.
@@ -59,11 +66,15 @@ public:
 	// Do not call on the main thread to avoid stalls.
 	virtual void SetFaceTrackingBackend(FaceDetectorBackend) = 0;
 	virtual FaceDetectorBackend GetFaceTrackingBackend() const = 0;
+	// Do not call on the main thread to avoid stalls.
+	virtual void SetFaceTrackingInputType(FaceDetectorInputType) = 0;
+	virtual FaceDetectorInputType GetFaceTrackingInputType() const = 0;
 	virtual bool IsFaceTrackingOnGpu() const = 0;
 	virtual bool GetPrimaryFace(glm::vec3* position) const = 0;
 	virtual bool GetNonPredictedPrimaryFace(glm::vec3* position) const = 0;
 	virtual bool GetFaceTrackingProfiling(leia_headtracking_frame_profiling*) const = 0;
 	virtual void SetFacePoint(head::MovingPoint const*, Timestamp const*) = 0;
+	virtual bool IsFaceTrackingInFatalError(head::ServiceSpecificError* error, std::string* message) const = 0;
 
 	virtual void InitializePlatform(PlatformInitArgs const&) = 0;
 	virtual void Initialize(Delegate*) = 0;
@@ -72,16 +83,10 @@ public:
 	virtual AssetManager* GetAssetManager() = 0;
 
 	public:
-	virtual class ThreadedInterlacer* CreateNewThreadedInterlacer(ThreadedInterlacerInitArgs const&) = 0;
-	virtual void Destroy(ThreadedInterlacer*) = 0;
+	virtual IThreadedInterlacer* CreateNewThreadedInterlacer(ThreadedInterlacerInitArgs const&) = 0;
+	virtual void Destroy(IThreadedInterlacer*) = 0;
 
-#if defined(LEIA_USE_DIRECTX)
-	// TODO:
-#elif defined(LEIA_USE_VULKAN)
-	// TODO:
-#endif
-
-    virtual ML* GetML() const = 0;
+    virtual ML* GetML() = 0;
 };
 
 // Single entry point for creating Leia SDK interface.

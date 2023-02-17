@@ -1,4 +1,0 @@
-
-user_version 0.6.74
-full_version refs/heads/main-f7cb53e710133befbb7b4ffecccebb750f91bdcb
-dependencies C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/leia/sdk/Release/leiaSDK-faceTrackingService.dll;bin;C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/leia/sdk/Release/leiaSDK-faceTrackingService.lib;lib;C:/agent/xml-data/build-dir/r/main/Nightly/leia/device/windows/prebuilt/LeiaDisplaySdk/bin/LeiaDisplaySdkCpp.dll;bin;C:/agent/xml-data/build-dir/r/main/Nightly/leia/device/windows/prebuilt/LeiaDisplaySdk/bin/LeiaDisplayService.Wcf.dll;bin;C:/agent/xml-data/build-dir/r/main/Nightly/leia/sdk/assets;bin;C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/_package/windows/release/include/leia;include;C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/_package/windows/release/include/third_party;include

@@ -2,8 +2,6 @@
 
 #include "leia/common/assert.h"
 
-#include <spdlog/spdlog.h>
-
 #include <fstream>
 #include <vector>
 

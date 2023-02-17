@@ -72,6 +72,9 @@ LEIASDK_API
 leia_sdk_status leiaSdkSetFaceTrackingBackend(leia_sdk, leia_face_detector_backend);
 
 LEIASDK_API
+leia_sdk_status leiaSdkSetFaceTrackingInputType(leia_sdk, leia_face_detector_input_type);
+
+LEIASDK_API
 leia_sdk_status leiaSdkEnableFacetracking(leia_sdk, leia_bool enable);
 
 LEIASDK_API

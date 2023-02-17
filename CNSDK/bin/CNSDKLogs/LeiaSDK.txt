@@ -1,0 +1,35 @@
+[2022-11-04 16:38:18.814] [LeiaSDK] [info] version: 0.6.84 (refs/heads/main - 24452e45a5a142fd2ab03862013668787151fe2c)
+[2022-11-04 16:38:19.042] [LeiaSDK] [info] LeiaService: Display not connected, returning default 15.6" 12V configuration
+
+[2022-11-04 16:38:19.042] [LeiaSDK] [info] Device Configuration:
+    Number of Views           : 12 x 1
+    Panel Resolution          : 3840 x 2160
+    View Resolution           : 1280 x 720
+    Display Size (mm)         : 344 x 120
+    Dot Pitch (mm)            : 0.08964 x 0.056
+    System Disparity Percent  : 4
+    System Disparity Pixels   : 8
+    Convergence Distance      : 521.53
+    ACT Gamma                 : 1.99562
+    ACT Beta                  : 1.99912
+    Camera Center             : [33.238, 125.224, 0]
+    Camera Theta              : [-4.6222, -1.786, 0]
+    Center View Number        : 8.69004
+    n                         : 1.6
+    Theta                     : 0.6484
+    s                         : 11.3
+    d/n                       : 0.514634
+    p/du                      : 3
+    p/dv                      : 1
+    Color Inversion           : No
+    Color Slant               : No
+    Camera                    : [width=0, height=0, fps0, binningFactor0]
+    Sharpening Coefficients X : [0.081, 0.009, 0.017, 0.008, 0.008, 0.004, 0, 0, 0]
+    Sharpening Coefficients Y : [0, -1.786, 0, 0.45, 0.15, -0.45, -0.15, 0.5, 0.5]
+
+[2022-11-04 16:38:19.043] [LeiaSDK] [info] Starting face tracking
+[2022-11-04 16:38:19.043] [LeiaSDK] [info] [FaceTracking] using in-app implementation
+[2022-11-04 16:38:19.043] [LeiaSDK] [error] Failed to initialize face tracking backend: camera is not connected in leia::sdk::FaceTracking::InitBackend C:\Users\crohani\Documents\GitHub\CNSDK\leia\sdk\faceTracking.cpp:213
+[2022-11-04 16:38:19.043] [LeiaSDK] [info] [LeiaSDK] Backlight attempting to turn on with allocated interlacers: 1
+[2022-11-04 16:38:19.044] [LeiaSDK] [info] [LeiaSDK] SetBacklight - NoFaceMode not active setting backlight to on
+[2022-11-04 16:38:19.044] [LeiaSDK] [info] [LeiaSDK] NoFaceMode ForceSetBacklight forced on

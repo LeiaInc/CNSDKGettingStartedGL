@@ -13,6 +13,7 @@ struct FaceDetectorConfiguration {
     // Set to zero to use the max possible number.
     int maxNumOfFaces = 0;
     FaceDetectorBackend backend = kLeiaFaceDetectorBackendUnknown;
+    FaceDetectorInputType inputType = kLeiaFaceDetectorInputTypeUnknown;
 };
 
 /// Sole purpose of FaceDetector is to detect faces on CameraFrame.
@@ -20,13 +21,11 @@ struct FaceDetectorConfiguration {
 /// on CameraFrame and its real-world depth (camera space Z-component, not distance from camera).
 class FaceDetector {
 public:
-    virtual int GetMaxNumOfFacesLimit() const = 0;
-    /// Max number of faces that can be detected
-    virtual int GetMaxNumOfFaces() const = 0;
-    /// Set max number of faces that can be detected
-    virtual void SetMaxNumOfFaces(int) = 0;
+    virtual ~FaceDetector() = default;
 
-    virtual FaceDetectorBackend GetBackend() const = 0;
+    virtual int GetMaxNumOfFacesLimit() const = 0;
+
+    virtual FaceDetectorConfiguration const& GetConfig() const = 0;
 
     /// Must be called whenever camera parameters, such as intrinsics, change.
     virtual void CameraDidChange(CameraIntrinsics const& intrinsics) = 0;

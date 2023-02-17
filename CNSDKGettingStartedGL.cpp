@@ -24,21 +24,22 @@
 enum class eDemoMode { Spinning3DCube, StereoImage };
 
 // Global Variables.
-const wchar_t*                 g_windowTitle       = L"CNSDK Getting Started OpenGL Sample";
-const wchar_t*                 g_windowClass       = L"CNSDKGettingStartedGLWindowClass";
-unsigned int                   g_shaderProgram     = 0;
-unsigned int                   g_vao               = 0;
-unsigned int                   g_uniformTransform  = 0;
-int                            g_windowWidth       = 1280;
-int                            g_windowHeight      = 720;
-bool                           g_fullscreen        = true;
-leia::sdk::ILeiaSDK*           g_sdk               = nullptr;
-leia::sdk::ThreadedInterlacer* g_interlacer        = nullptr;
-GLuint                         g_stereoFrameBuffer = 0;
-GLuint                         g_stereoTexture     = 0;
-GLuint                         g_stereoDepthBuffer = 0;
-eDemoMode                      g_demoMode          = eDemoMode::Spinning3DCube;
-GLuint                         g_imageTexture      = 0;
+const wchar_t*                  g_windowTitle       = L"CNSDK Getting Started OpenGL Sample";
+const wchar_t*                  g_windowClass       = L"CNSDKGettingStartedGLWindowClass";
+unsigned int                    g_shaderProgram     = 0;
+unsigned int                    g_vao               = 0;
+unsigned int                    g_uniformTransform  = 0;
+int                             g_windowWidth       = 1280;
+int                             g_windowHeight      = 720;
+bool                            g_fullscreen        = true;
+leia::sdk::ILeiaSDK*            g_sdk               = nullptr;
+leia::sdk::IThreadedInterlacer* g_interlacer        = nullptr;
+GLuint                          g_stereoFrameBuffer = 0;
+GLuint                          g_stereoTexture     = 0;
+GLuint                          g_stereoDepthBuffer = 0;
+eDemoMode                       g_demoMode          = eDemoMode::Spinning3DCube;
+GLuint                          g_imageTexture      = 0;
+float                           g_convergenceDist = 500;
 
 void OnError(const wchar_t* msg)
 {
@@ -220,6 +221,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case VK_ESCAPE:
                 PostQuitMessage(0);
                 break;
+            case 33://VK_UP:
+            {
+                g_convergenceDist += 10.0f;
+                char str[64] = {};
+                sprintf(str, "g_convergenceDist=%f\n", g_convergenceDist);
+                OutputDebugStringA(str);
+                break;
+            }
+            case 34://VK_DOWN:
+            {
+                g_convergenceDist -= 10.0f;
+                char str[64] = {};
+                sprintf(str, "g_convergenceDist=%f\n", g_convergenceDist);
+                OutputDebugStringA(str);
+                break;
+            }
+
+            case VK_LEFT:   g_sdk->SetBaselineScaling(g_sdk->GetBaselineScaling() - 10.0f); break;
+            case VK_RIGHT:	g_sdk->SetBaselineScaling(g_sdk->GetBaselineScaling() + 10.0f); break;
         }
         break;
 
@@ -543,46 +563,102 @@ void LoadScene()
 
     if (g_demoMode == eDemoMode::Spinning3DCube)
     {
-        const float vertexPositions[] = {
-            // Front face
-             100.0f,  100.0f,  100.0f,
-            -100.0f,  100.0f,  100.0f,
-            -100.0f, -100.0f,  100.0f,
-             100.0f, -100.0f,  100.0f,
+        const float cubeWidth  = 200.0f;
+        const float cubeHeight = 200.0f;
+        const float cubeDepth  = 200.0f;
 
-            // Back face
-             100.0f,  100.0f, -100.0f,
-            -100.0f,  100.0f, -100.0f,
-            -100.0f, -100.0f, -100.0f,
-             100.0f, -100.0f, -100.0f,
+        const float l = -cubeWidth / 2.0f;
+	    const float r = l + cubeWidth;
+	    const float b = -cubeHeight / 2.0f;
+	    const float t = b + cubeHeight;
+	    const float n = -cubeDepth / 2.0f;
+	    const float f = n + cubeDepth;
+
+        const int cubeVertsCount = 8;
+
+        const float cubeVerts[cubeVertsCount][3] =
+        {
+            {l, n, b}, // Left Near Bottom
+            {l, f, b}, // Left Far Bottom
+            {r, f, b}, // Right Far Bottom
+            {r, n, b}, // Right Near Bottom
+            {l, n, t}, // Left Near Top
+            {l, f, t}, // Left Far Top
+            {r, f, t}, // Right Far Top
+            {r, n, t}  // Right Near Top
         };
 
-        const float vertexColors[] = {
-            1.0f, 0.4f, 0.6f,
-            1.0f, 0.9f, 0.2f,
-            0.7f, 0.3f, 0.8f,
-            1.0f, 0.3f, 1.0f,
-
-            0.2f, 0.6f, 1.0f,
-            0.6f, 1.0f, 0.4f,
-            0.6f, 0.8f, 0.8f,
-            0.4f, 0.8f, 0.8f,
+        static const int faces[6][4] =
+        {
+            {0,1,2,3}, // bottom
+            {1,0,4,5}, // left
+            {0,3,7,4}, // front
+            {3,2,6,7}, // right
+            {2,1,5,6}, // back
+            {4,7,6,5}  // top
         };
 
-        const unsigned short indices[] = {
-            0, 1, 2, // Front
-            2, 3, 0,
-            0, 3, 7, // Right
-            7, 4, 0,
-            2, 6, 7, // Bottom
-            7, 3, 2,
-            1, 5, 6, // Left
-            6, 2, 1,
-            4, 7, 6, // Back
-            6, 5, 4,
-            5, 1, 0, // Top
-            0, 4, 5,
+        static const float faceColors[6][3] =
+        {
+            {1,0,0},
+            {0,1,0},
+            {0,0,1},
+            {1,1,0},
+            {0,1,1},
+            {1,0,1}
         };
+
+        std::vector<float> verts;
+        std::vector<float> colors;
+        std::vector<unsigned short> indices;
+        for (int i = 0; i < 6; i++)
+        {
+            const int i0 = faces[i][0];
+            const int i1 = faces[i][1];
+            const int i2 = faces[i][2];
+            const int i3 = faces[i][3];
+
+            // Add indices.
+            const int startIndex = (int)verts.size()/3;
+            indices.emplace_back(startIndex + 0);
+            indices.emplace_back(startIndex + 1);
+            indices.emplace_back(startIndex + 2);
+            indices.emplace_back(startIndex + 0);
+            indices.emplace_back(startIndex + 2);
+            indices.emplace_back(startIndex + 3);
+
+            verts.emplace_back(cubeVerts[i0][0]);
+            verts.emplace_back(cubeVerts[i0][1]);
+            verts.emplace_back(cubeVerts[i0][2]);
+
+            verts.emplace_back(cubeVerts[i1][0]);
+            verts.emplace_back(cubeVerts[i1][1]);
+            verts.emplace_back(cubeVerts[i1][2]);
+
+            verts.emplace_back(cubeVerts[i2][0]);
+            verts.emplace_back(cubeVerts[i2][1]);
+            verts.emplace_back(cubeVerts[i2][2]);
+
+            verts.emplace_back(cubeVerts[i3][0]);
+            verts.emplace_back(cubeVerts[i3][1]);
+            verts.emplace_back(cubeVerts[i3][2]);
+
+            colors.emplace_back(faceColors[i][0]);
+            colors.emplace_back(faceColors[i][1]);
+            colors.emplace_back(faceColors[i][2]);
+
+            colors.emplace_back(faceColors[i][0]);
+            colors.emplace_back(faceColors[i][1]);
+            colors.emplace_back(faceColors[i][2]);
+
+            colors.emplace_back(faceColors[i][0]);
+            colors.emplace_back(faceColors[i][1]);
+            colors.emplace_back(faceColors[i][2]);
+
+            colors.emplace_back(faceColors[i][0]);
+            colors.emplace_back(faceColors[i][1]);
+            colors.emplace_back(faceColors[i][2]);
+        }
 
         const unsigned int vertexPositionsAttributeIndex  = 0;
         const unsigned int vertexColorsAttributeIndex     = 1;
@@ -594,13 +670,13 @@ void LoadScene()
         GLuint indexBuffer = 0;
         glGenBuffers(1, &indexBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned short), indices.data(), GL_STATIC_DRAW);
 
         // Create vertex positions buffer.
         GLuint vertexPositionsBuffer = 0;
         glGenBuffers(1, &vertexPositionsBuffer);
         glBindBuffer(GL_ARRAY_BUFFER, vertexPositionsBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(float), verts.data(), GL_STATIC_DRAW);
         glVertexAttribPointer(vertexPositionsAttributeIndex, 3, GL_FLOAT, GL_FALSE, 0, NULL);
         glEnableVertexAttribArray(vertexPositionsAttributeIndex);
 
@@ -608,7 +684,7 @@ void LoadScene()
         GLuint vertexColorsBuffer = 0;
         glGenBuffers(1, &vertexColorsBuffer);
         glBindBuffer(GL_ARRAY_BUFFER, vertexColorsBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW);
         glVertexAttribPointer(vertexColorsAttributeIndex, 3, GL_FLOAT, GL_FALSE, 0, NULL);
         glEnableVertexAttribArray(vertexColorsAttributeIndex);
 
@@ -764,6 +840,11 @@ void RotateOrientation(mat3f& orientation, float x, float y, float z)
     orientation = orientation * (rx * ry * rz);
 }
 
+float GetFOVForViewHeightAtConvergenceDistance(float desiredConvergencePlaneHeight, float desiredConvergenceDistance)
+{
+    return 2.0f * atan(desiredConvergencePlaneHeight / (2.0f * desiredConvergenceDistance));
+}
+
 void Render(HDC hDC, float elapsedTime) {
     
     const int   viewWidth   = g_sdk->GetViewWidth();
@@ -787,8 +868,8 @@ void Render(HDC hDC, float elapsedTime) {
         mat4f geometryTransform;
         {
             // Place cube at convergence distance.
-            float convergenceDistance = g_sdk->GetConvergenceDistance();
-            vec3f geometryPos = vec3f(0, convergenceDistance, 0);
+            //float convergenceDistance = g_sdk->GetConvergenceDistance() + g_convergenceDistOfs;
+            vec3f geometryPos = vec3f(0, 500, 0);//convergenceDistance, 0);
 
             mat3f geometryOrientation;
             geometryOrientation.setIdentity();
@@ -813,13 +894,16 @@ void Render(HDC hDC, float elapsedTime) {
             const glm::vec3 viewOffset = g_interlacer->GetViewOffset(i);
 
             // Get shear to apply to perspective projection.
-            const float convergenceDistance = g_sdk->GetConvergenceDistance();
+            const float convergenceDistance = g_convergenceDist;// g_sdk->GetConvergenceDistance();
             const float shearX = -viewOffset.x / convergenceDistance;
             const float shearY = -viewOffset.z / convergenceDistance;
 
+            float fov = GetFOVForViewHeightAtConvergenceDistance(g_convergenceDist, g_convergenceDist);
+
             // Create camera projection with shear.
             mat4f cameraProjection;
-            cameraProjection.setPerspective(90.0f * (3.14159f / 180.0f), aspectRatio, 0.01f, 1000.0f);
+            cameraProjection.setPerspective(/*90.0f*(3.14159f / 180.0f)*/fov, aspectRatio, 0.01f, 1000.0f);
+                        
             cameraProjection[2][0] = cameraProjection[0][0] * shearX;
             cameraProjection[2][1] = cameraProjection[1][1] * shearY;
 
@@ -854,7 +938,7 @@ void Render(HDC hDC, float elapsedTime) {
         // Perform interlacing.
         g_interlacer->SetSourceViewsSize(viewWidth, viewHeight, true);
         g_interlacer->SetInterlaceViewTextureAtlas(g_stereoTexture);
-        g_interlacer->DoPostProcess(g_windowWidth, g_windowHeight, false, 0);
+        g_interlacer->DoPostProcess(g_windowWidth, g_windowHeight, false, (uint32_t)0);
     }
 
     // 

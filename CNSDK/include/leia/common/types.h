@@ -39,6 +39,14 @@ typedef enum leia_face_detector_backend_e {
     kNumLeiaFaceDetectorBackends = 2,
 } leia_face_detector_backend;
 
+typedef enum leia_face_detector_input_type_e {
+    kLeiaFaceDetectorInputTypeUnknown = 0,
+    kLeiaFaceDetectorInputTypeCPU = 1 << 0,
+    kLeiaFaceDetectorInputTypeGPU = 1 << 1,
+
+    kNumLeiaFaceDetectorInputTypes = 2,
+} leia_face_detector_input_type;
+
 #pragma pack(pop)
 
 END_CAPI_DECL

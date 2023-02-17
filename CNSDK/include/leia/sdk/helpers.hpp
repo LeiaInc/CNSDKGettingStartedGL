@@ -4,6 +4,7 @@
 #include "leia/sdk/enums.hpp"
 #include "leia/common/log.h"
 #include "leia/common/jniTypes.h"
+#include "leia/headTracking/service/common.hpp"
 #include "leia/headTracking/common/frameAdapter.hpp"
 
 namespace leia {
@@ -24,6 +25,8 @@ struct Delegate
 {
 	LEIASDK_API
 	virtual void DidInitialize(ILeiaSDK*);
+	LEIASDK_API
+	virtual void OnFaceTrackingFatalError(ILeiaSDK*);
 };
 
 class InterlacerDelegate
@@ -41,6 +44,12 @@ public:
 	virtual void OnSharpenRender   (int width, int height);
 	LEIASDK_API
 	virtual void PostSharpen   (int width, int height);
+};
+
+struct FaceTrackingStateListener {
+	/// Face tracking operation has failed and the face tracking backend enountered a fatal error.
+	/// An attempt at recovery may be possible by shutting down the face tracking and trying to enable it again.
+	virtual void OnFatalError() = 0;
 };
 
 class CLeiaSDKFaceTrackingCallback

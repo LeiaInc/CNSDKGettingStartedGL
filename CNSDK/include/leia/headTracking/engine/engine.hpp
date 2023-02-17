@@ -25,6 +25,9 @@ namespace device { class SensorManager; }
 
 namespace leia::head {
 
+struct BlinkDetectorConfiguration;
+class AndroidCameraSinkGPU;
+class AndroidCameraSinkCPU;
 class FrameAdapter;
 
 struct EngineConfiguration {
@@ -86,6 +89,8 @@ struct EngineInitArgs {
 
     /// Use this to inject virtual detected face into the face tracking algorithm. Useful for debugging the multi-face case.
     VirtualFaceHook virtualFaceHook = nullptr;
+
+    TrackingStateListener* trackingStateListener = nullptr;
 };
 
 struct TrackingSessionInitArgs {
@@ -142,6 +147,10 @@ public:
     bool SetFaceDetectorBackend(FaceDetectorBackend);
     LHT_ENGINE_API
     FaceDetectorBackend GetFaceDetectorBackend() const;
+    LHT_ENGINE_API
+    bool SetFaceDetectorInputType(FaceDetectorInputType);
+    LHT_ENGINE_API
+    FaceDetectorInputType GetFaceDetectorInputType() const;
 
     LHT_ENGINE_API
     Slice<const int> GetSupportedCameraFps() const;
@@ -164,11 +173,15 @@ private:
     void OnCameraFrameAvailable(Camera* camera, CameraFrame const& cameraFrame);
     void OnCameraIntrinsicsChange(Camera* camera, CameraIntrinsics const& intrinsics);
 
-    void SetFaceDetector(std::shared_ptr<FaceDetector> const& faceDetector);
+    bool OnFaceDetectorConfigChange();
+    void UpdateFaceDetectorConfig();
+    void UpdateCameraSink();
 
-    void CreateCamera(TrackingSessionInitArgs const& initArgs);
+    void CreateCamera();
 
     void ProcessFrame(CameraFrame const& cameraFrame);
+
+    void CreateFaceDetector();
 
     float GetDeviceAcceleration();
     void PushDeviceAcceleration(glm::vec3 const&);
@@ -176,6 +189,7 @@ private:
 private:
     Platform* _platform;
     AssetManager* _assetManager;
+    TrackingStateListener* _trackingStateListener;
     EngineConfiguration _config;
     EngineFrameCallback _frameCallback;
     FrameAdapter* _frameAdapter;
@@ -195,7 +209,8 @@ private:
 #endif
 
     bool _isProfilingEnabled = false;
-    bool _trackingStarted;
+    std::atomic<bool> _trackingStarted;
+    bool _notifyTrackingStart = false;
 
     std::mutex _configMutex;
     std::atomic<uint32_t> _dirtyBits = AllDirty;
@@ -203,12 +218,16 @@ private:
     std::shared_ptr<FaceDetector> _faceDetector;
     std::unique_ptr<FaceTracker> _faceTracker;
 
-    std::mutex _newFaceDetectorMutex;
-    std::shared_ptr<FaceDetector> _newFaceDetector;
+#if defined(LEIA_OS_ANDROID)
+    std::unique_ptr<AndroidCameraSinkCPU> _cpuSink;
+    std::unique_ptr<AndroidCameraSinkGPU> _gpuSink;
+#endif
 
     SharedCameraSink* _sharedCameraSink;
     std::atomic<bool> _isCameraValid;
     std::unique_ptr<Camera> _camera; // Camera should be the first to release, keep it at the bottom
+
+    friend BlinkDetectorConfiguration GetBlinkDetectorConfiguration(Engine*);
 };
 
 LHT_ENGINE_API

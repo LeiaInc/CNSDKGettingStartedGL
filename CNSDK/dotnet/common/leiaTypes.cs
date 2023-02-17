@@ -44,4 +44,12 @@ namespace Leia
 
         Count = 2,
     }
+    public enum FaceDetectorInputType
+    {
+        Unknown = 0,
+        CPU = 1 << 0,
+        GPU = 1 << 1,
+
+        Count = 2,
+    }
 }

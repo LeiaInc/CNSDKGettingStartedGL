@@ -24,11 +24,26 @@ using GuiSurface = HWND;
 using GuiSurface = void*;
 #endif
 
+enum class GuiGraphicsAPI
+{
+    OpenGL,
+    D3D11,
+    D3D12
+};
+
 struct GuiInitArgs {
     float fontGlobalScale = 0.0f;
     GuiSurface surface = nullptr;
     void*      d3d11Device = nullptr;
     void*      d3d11DeviceContext = nullptr;
+    void*      d3d12Device = nullptr;
+    int        d3d12NumFramesInFlight = 0;
+    int        d3d12RtvFormat = 0;
+    void*      d3d12DeviceCbvSrvHeap = nullptr;
+    uint64_t   d3d12FontSrvCpuDescHandle = 0;
+    uint64_t   d3d12FontSrvGpuDescHandle = 0;
+    void*      d3d12CommandList = nullptr;
+    GuiGraphicsAPI graphicsAPI = GuiGraphicsAPI::OpenGL;
 };
 
 class Gui {
@@ -66,6 +81,8 @@ public:
 private:
     ImGuiContext* _imGuiContext;
     std::thread::id _owningThreadId;
+    void* _d3d12CommandList = nullptr;
+    GuiGraphicsAPI graphicsAPI = GuiGraphicsAPI::OpenGL;
 };
 
 } // namespace leia::sdk

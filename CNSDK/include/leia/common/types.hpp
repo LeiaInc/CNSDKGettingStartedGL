@@ -45,8 +45,11 @@ struct CameraIntrinsics {
 };
 
 using FaceDetectorBackend = leia_face_detector_backend;
+using FaceDetectorInputType = leia_face_detector_input_type;
 
 const char* ToStr(FaceDetectorBackend error);
 const char* ToUiStr(FaceDetectorBackend error);
+const char* ToStr(FaceDetectorInputType);
+const char* ToUiStr(FaceDetectorInputType);
 
 } // namespace leia

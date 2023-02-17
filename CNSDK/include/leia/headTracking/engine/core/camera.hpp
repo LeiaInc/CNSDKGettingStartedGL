@@ -35,6 +35,8 @@ public:
 
     /// Computes the corresponding pixel coordinate and depth.
     virtual bool ProjectPointToPixel(glm::vec3 const&, glm::dvec2*, float*) const = 0;
+
+    virtual bool GetGpuTextureId(uint32_t*) const { return false; }
 };
 
 struct CameraConfiguration {

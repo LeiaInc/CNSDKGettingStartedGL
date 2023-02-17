@@ -40,9 +40,17 @@
 #define END_CAPI_DECL
 #endif
 
-// Graphics API
-//#define LEIA_USE_NEW_RENDERER
+// Graphics API. 
+// Enable either the old renderer *OR* the new renderer below.
+
+// Old renderer: Enable the line below.
+//#define LEIA_USE_OPENGL
+
+// New renderer: Enable all lines below.
+#define LEIA_USE_NEW_RENDERER
 #define LEIA_USE_OPENGL
-//#define LEIA_USE_DIRECTX
-//#define LEIA_USE_DIRECTX12
-//#define LEIA_USE_VULKAN
+#ifdef LEIA_OS_WINDOWS
+#define LEIA_USE_DIRECTX
+#define LEIA_USE_DIRECTX12
+#endif
+

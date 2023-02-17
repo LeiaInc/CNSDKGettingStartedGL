@@ -1,7 +1,7 @@
-prefix=C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/_package/windows/release
-exec_prefix=C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/_package/windows/release
-libdir=C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/_package/windows/release/lib
-includedir=C:/agent/xml-data/build-dir/r/main/Nightly/build_tmp/_package/windows/release/include
+prefix=C:/Users/crohani/Documents/GitHub/CNSDK/build/_package
+exec_prefix=C:/Users/crohani/Documents/GitHub/CNSDK/build/_package
+libdir=C:/Users/crohani/Documents/GitHub/CNSDK/build/_package/lib
+includedir=C:/Users/crohani/Documents/GitHub/CNSDK/build/_package/include
 
 Name: libzmq
 Description: 0MQ c++ library
