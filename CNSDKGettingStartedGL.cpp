@@ -3,17 +3,19 @@
 //    3 Additional include paths for CNSDK
 
 #include <stdio.h>
-
-// CNSDKGettingStartedGL includes
+#include <assert.h>
 #include "framework.h"
-#include "CNSDKGettingStartedGL.h"
-#include "CNSDKGettingStartedMath.h"
 
 // CNSDK includes
 #include "leia/sdk/sdk.hpp"
 #include "leia/sdk/interlacer.hpp"
 #include "leia/sdk/debugMenu.hpp"
 #include "leia/common/platform.hpp"
+
+// CNSDKGettingStartedGL includes
+#include "CNSDKGettingStartedGL.h"
+#include "CNSDKGettingStartedMath.h"
+#include "CNSDKGettingStartedViews.h"
 
 // CNSDK single library
 #pragma comment(lib, "CNSDK/lib/leiaSDK-faceTrackingInApp.lib")
@@ -39,7 +41,9 @@ GLuint                          g_stereoTexture     = 0;
 GLuint                          g_stereoDepthBuffer = 0;
 eDemoMode                       g_demoMode          = eDemoMode::Spinning3DCube;
 GLuint                          g_imageTexture      = 0;
-float                           g_convergenceDist = 500;
+float                           g_convergenceDist   = 500;
+float                           g_geometryDist      = 500;
+bool                            g_perspective       = false;
 
 void OnError(const wchar_t* msg)
 {
@@ -221,7 +225,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case VK_ESCAPE:
                 PostQuitMessage(0);
                 break;
-            case 33://VK_UP:
+            case VK_PRIOR:
             {
                 g_convergenceDist += 10.0f;
                 char str[64] = {};
@@ -229,7 +233,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 OutputDebugStringA(str);
                 break;
             }
-            case 34://VK_DOWN:
+            case VK_NEXT:
             {
                 g_convergenceDist -= 10.0f;
                 char str[64] = {};
@@ -237,7 +241,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 OutputDebugStringA(str);
                 break;
             }
-
             case VK_LEFT:   g_sdk->SetBaselineScaling(g_sdk->GetBaselineScaling() - 10.0f); break;
             case VK_RIGHT:	g_sdk->SetBaselineScaling(g_sdk->GetBaselineScaling() + 10.0f); break;
         }
@@ -840,10 +843,7 @@ void RotateOrientation(mat3f& orientation, float x, float y, float z)
     orientation = orientation * (rx * ry * rz);
 }
 
-float GetFOVForViewHeightAtConvergenceDistance(float desiredConvergencePlaneHeight, float desiredConvergenceDistance)
-{
-    return 2.0f * atan(desiredConvergencePlaneHeight / (2.0f * desiredConvergenceDistance));
-}
+
 
 void Render(HDC hDC, float elapsedTime) {
     
@@ -867,9 +867,8 @@ void Render(HDC hDC, float elapsedTime) {
         // geometry transform.
         mat4f geometryTransform;
         {
-            // Place cube at convergence distance.
-            //float convergenceDistance = g_sdk->GetConvergenceDistance() + g_convergenceDistOfs;
-            vec3f geometryPos = vec3f(0, 500, 0);//convergenceDistance, 0);
+            // Place cube at specified distance.
+            vec3f geometryPos = vec3f(0, g_geometryDist, 0);
 
             mat3f geometryOrientation;
             geometryOrientation.setIdentity();
@@ -890,33 +889,33 @@ void Render(HDC hDC, float elapsedTime) {
         // Render stereo views.
         for (int i = 0; i < 2; i++)
         {
-            // Get view offset.
-            const glm::vec3 viewOffset = g_interlacer->GetViewOffset(i);
-
-            // Get shear to apply to perspective projection.
-            const float convergenceDistance = g_convergenceDist;// g_sdk->GetConvergenceDistance();
-            const float shearX = -viewOffset.x / convergenceDistance;
-            const float shearY = -viewOffset.z / convergenceDistance;
-
-            float fov = GetFOVForViewHeightAtConvergenceDistance(g_convergenceDist, g_convergenceDist);
-
-            // Create camera projection with shear.
-            mat4f cameraProjection;
-            cameraProjection.setPerspective(/*90.0f*(3.14159f / 180.0f)*/fov, aspectRatio, 0.01f, 1000.0f);
-                        
-            cameraProjection[2][0] = cameraProjection[0][0] * shearX;
-            cameraProjection[2][1] = cameraProjection[1][1] * shearY;
-
-            // Get camera position (including offset from interlacer).
+            // Get camera properties.
             vec3f camPos = vec3f(0, 0, 0);
-            camPos += vec3f(viewOffset.x, viewOffset.z, viewOffset.y);
-
-            // Get camera direction.
             vec3f camDir = vec3f(0, 1, 0);
+            vec3f camUp  = vec3f(0, 0, 1);
+
+            // Get Leia SDK baseline scaling.
+            float baselineScaling = g_sdk->GetBaselineScaling();
+
+            // Get Leia interlacer view offset.
+            glm::vec3 viewOffset = g_interlacer->GetViewOffset(i);
+            
+            // Compute view position and projection matrix for view.
+            vec3f viewPos = vec3f(0, 0, 0);
+            mat4f cameraProjection;
+            if (g_perspective)
+            {
+                GetConvergedPerspectiveViewInfo(i, baselineScaling, viewOffset, camPos, camDir, camUp, aspectRatio, 1.0f, 10000.0f, g_convergenceDist, g_convergenceDist, &viewPos, &cameraProjection);
+            }
+            else
+            {
+                float orthoHeight = 500.0f;
+                GetConvergedOrthographicViewInfo(i, baselineScaling, viewOffset, camPos, camDir, camUp, orthoHeight * aspectRatio, orthoHeight, 1.0f, 10000.0f, g_convergenceDist, g_convergenceDist, &viewPos, &cameraProjection);
+            }
 
             // Get camera transform.
             mat4f cameraTransform;
-            cameraTransform.lookAt(camPos, camPos + camDir, vec3f(0.0f, 0.0f, 1.0f));
+            cameraTransform.lookAt(viewPos, viewPos + camDir, camUp);
 
             // Compute combined matrix.
             const mat4f mvp = cameraProjection * cameraTransform * geometryTransform;

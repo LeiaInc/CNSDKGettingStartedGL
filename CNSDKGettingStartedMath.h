@@ -34,7 +34,9 @@
         // Default constructor
         vec3f() = default;
 
+
         // Constructors
+                 vec3f (glm::vec3 v) : x(v.x), y(v.y), z(v.z) {}
         explicit vec3f (float xyz) : x(xyz), y(xyz), z(xyz) {}
         explicit vec3f (float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
         explicit vec3f (const vec2f& xy, float _z) : x(xy.x), y(xy.y), z(_z) {}
@@ -440,6 +442,21 @@
             y = vec4f(0.0f, Ys,   0.0f, 0.0f);
             z = vec4f(0.0f, 0.0f, Zs,  -1.0f);
             w = vec4f(0.0f, 0.0f, Us,   0.0f);
+        }
+
+        void setOrthographic(float left, float right, float bottom, float top, float znear, float zfar)
+        {
+            const float Xs = 2.0f / (right - left);
+            const float Ys = 2.0f / (top - bottom);
+            const float Zs = -2.0f / (zfar - znear);
+            const float tx = -(right + left) / (right - left);
+            const float ty = -(top + bottom) / (top - bottom);
+            const float tz = -(zfar + znear) / (zfar - znear);
+
+            x = vec4f(Xs,   0.0f, 0.0f, 0.0f);
+            y = vec4f(0.0f, Ys,   0.0f, 0.0f);
+            z = vec4f(0.0f, 0.0f, Zs,   0.0f);
+            w = vec4f(tx,   ty,   tx,   1.0f);
         }
 
         void lookAt(const vec3f& eye, const vec3f& center, const vec3f& up)

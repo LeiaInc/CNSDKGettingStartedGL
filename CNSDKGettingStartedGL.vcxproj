@@ -94,6 +94,7 @@ copy "StereoBeerGlass.tga" "$(Platform)\$(Configuration)"</Command>
   <ItemGroup>
     <ClInclude Include="CNSDKGettingStartedGL.h" />
     <ClInclude Include="CNSDKGettingStartedMath.h" />
+    <ClInclude Include="CNSDKGettingStartedViews.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
