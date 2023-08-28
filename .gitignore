@@ -1,0 +1,14 @@
+# Visual Studio 2019 user specific files
+.vs/
+*.user
+*.suo
+
+# Builds
+x64/*
+
+CNSDK/dotnet/
+CNSDK/samples/
+CNSDK/docs/
+CNSDK/bin/assets/*
+!CNSDK/bin/assets/blink_resources/
+CNSDK/lib/LW_Engine.lib
