@@ -1,16 +1,3 @@
-/*
- * Copyright 2023 (c) Leia Inc.  All rights reserved.
- *
- * NOTICE:  All information contained herein is, and remains
- * the property of Leia Inc. and its suppliers, if any.  The
- * intellectual and technical concepts contained herein are
- * proprietary to Leia Inc. and its suppliers and may be covered
- * by U.S. and Foreign Patents, patents in process, and are
- * protected by trade secret or copyright law.  Dissemination of
- * this information or reproduction of this materials strictly
- * forbidden unless prior written permission is obtained from
- * Leia Inc.
- */
 #pragma once
 
 #include "leia/common/slice.h"
@@ -66,6 +53,14 @@ struct leia_camera_intrinsics {
     leia_bool isMirrored; /* Whether the image is mirrored or not */
 };
 
+struct leia_normalized_camera_intrinsics {
+    float fx; /* Horizontal normalized coordinate of the principal point of the image, as an offset from the left edge */
+    float fy; /* Vertical normalized coordinate of the principal point of the image, as an offset from the top edge */
+    float ppx; /* Horizontal focal length of the image plane normalized by the width */
+    float ppy; /* Vertical focal length of the image plane normalized by the height */
+    float distortionCoeffs[8]; /* Distortion coefficients, OpenCV-style */
+};
+
 struct leia_vector2d {
     double x;
     double y;
@@ -99,6 +94,17 @@ struct leia_mat4 {
         struct leia_vector4 col[4];
         float               m[16];
     };
+};
+
+enum leia_orientation {
+    LEIA_ORIENTATION_UNSPECIFIED       = -1,
+    LEIA_ORIENTATION_LANDSCAPE         = 0,
+    LEIA_ORIENTATION_PORTRAIT          = 1,
+    LEIA_ORIENTATION_REVERSE_LANDSCAPE = 2,
+    LEIA_ORIENTATION_REVERSE_PORTRAIT  = 3,
+    LEIA_ORIENTATION_COUNT             = 4,
+
+    _LEIA_ORIENTATION_MAKE_ENUM_32BIT = 0x7FFFFFFF
 };
 
 enum leia_face_detector_backend {
@@ -135,27 +141,104 @@ struct leia_source_location {
     }
 
 LEIA_NODISCARD
-LEIA_COMMON_API
-const char* leia_face_detector_backend_to_str(enum leia_face_detector_backend);
-LEIA_NODISCARD
-LEIA_COMMON_API
-const char* leia_face_detector_backend_to_ui_str(enum leia_face_detector_backend);
-LEIA_NODISCARD
-LEIA_COMMON_API
-const char* leia_face_detector_input_type_to_str(enum leia_face_detector_input_type);
-LEIA_NODISCARD
-LEIA_COMMON_API
-const char* leia_face_detector_input_type_to_ui_str(enum leia_face_detector_input_type);
+inline const char* leia_face_detector_backend_to_str(enum leia_face_detector_backend backend)
+{
+    switch (backend)
+    {
+        case kLeiaFaceDetectorBackendCPU:
+            return "kLeiaFaceDetectorBackendCPU";
+        case kLeiaFaceDetectorBackendGPU:
+            return "kLeiaFaceDetectorBackendGPU";
+        default:
+            return "kLeiaFaceDetectorBackendUnknown";
+    }
+}
 
 LEIA_NODISCARD
-LEIA_COMMON_API
-struct leia_float_slice leia_vector3_to_slice(struct leia_vector3*);
+inline const char* leia_face_detector_backend_to_ui_str(enum leia_face_detector_backend backend)
+{
+    switch (backend)
+    {
+        case kLeiaFaceDetectorBackendCPU:
+            return "CPU";
+        case kLeiaFaceDetectorBackendGPU:
+            return "GPU";
+        default:
+            return "Unknown";
+    }
+}
+
 LEIA_NODISCARD
-LEIA_COMMON_API
-struct leia_float_slice leia_vector4_to_slice(struct leia_vector4*);
+inline const char* leia_face_detector_input_type_to_str(enum leia_face_detector_input_type inputType)
+{
+    switch (inputType)
+    {
+        case kLeiaFaceDetectorInputTypeCPU:
+            return "kLeiaFaceDetectorInputTypeCPU";
+        case kLeiaFaceDetectorInputTypeGPU:
+            return "kLeiaFaceDetectorInputTypeGPU";
+        default:
+            return "kLeiaFaceDetectorInputTypeUnknown";
+    }
+}
+
 LEIA_NODISCARD
-LEIA_COMMON_API
-struct leia_float_slice leia_mat4_to_slice(struct leia_mat4*);
+inline const char* leia_face_detector_input_type_to_ui_str(enum leia_face_detector_input_type inputType)
+{
+    switch (inputType)
+    {
+        case kLeiaFaceDetectorInputTypeCPU:
+            return "CPU";
+        case kLeiaFaceDetectorInputTypeGPU:
+            return "GPU";
+        default:
+            return "Unknown";
+    }
+}
+
+LEIA_NODISCARD
+inline const char* leia_orientation_to_ui_str(enum leia_orientation orientation)
+{
+    switch (orientation)
+    {
+        case LEIA_ORIENTATION_LANDSCAPE:
+            return "Landscape";
+        case LEIA_ORIENTATION_PORTRAIT:
+            return "Portrait";
+        case LEIA_ORIENTATION_REVERSE_LANDSCAPE:
+            return "ReverseLandscape";
+        case LEIA_ORIENTATION_REVERSE_PORTRAIT:
+            return "ReversePortrait";
+        default:
+            return "Unknown";
+    }
+}
+
+LEIA_NODISCARD
+inline struct leia_float_slice leia_vector3_to_slice(struct leia_vector3* v)
+{
+    struct leia_float_slice ret;
+    ret.data   = v->v;
+    ret.length = 3;
+    return ret;
+}
+LEIA_NODISCARD
+inline struct leia_float_slice leia_vector4_to_slice(struct leia_vector4* v)
+{
+    struct leia_float_slice ret;
+    ret.data   = v->v;
+    ret.length = 4;
+    return ret;
+}
+LEIA_NODISCARD
+inline struct leia_float_slice leia_mat4_to_slice(struct leia_mat4* v)
+{
+    struct leia_float_slice ret;
+    ret.data   = v->m;
+    ret.length = 16;
+    return ret;
+}
+
 #pragma pack(pop)
 
 END_CAPI_DECL

@@ -73,6 +73,9 @@ the individual licenses apply.
 * Taskflow v3.6.0 (https://github.com/taskflow/taskflow)
     The MIT License, https://opensource.org/licenses/MIT
 
+* Json v3.11.2 (https://github.com/nlohmann/json)
+    The MIT License, https://opensource.org/licenses/MIT
+
 #############################################################################
 LICENSE TEXTS
 #############################################################################

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
+#include <memory>
 #include "framework.h"
 
 #define SOGL_IMPLEMENTATION_WIN32
@@ -9,15 +10,15 @@
 #include "simple-opengl-loader.h"
 
 // CNSDK includes
-#include "leia/sdk/core.hpp"
-#include "leia/sdk/core.interlacer.opengl.hpp"
+#include "leia/core/cxx/core.hpp"
+#include "leia/core/cxx/interlacer.opengl.hpp"
 
 // CNSDKGettingStartedGL includes
 #include "CNSDKGettingStartedGL.h"
 #include "CNSDKGettingStartedMath.h"
 
 // CNSDK single library
-#pragma comment(lib, "CNSDK/lib/leiaSDK-faceTrackingInApp.lib")
+#pragma comment(lib, "CNSDK/lib/leiaCore-faceTrackingInApp.lib")
 
 // OpenGL libraries
 #pragma comment(lib, "opengl32.lib")
@@ -27,22 +28,22 @@
 enum class eDemoMode { Spinning3DCube, StereoImage };
 
 // Global Variables.
-const wchar_t*                  g_windowTitle                  = L"CNSDK Getting Started OpenGL Sample";
-const wchar_t*                  g_windowClass                  = L"CNSDKGettingStartedGLWindowClass";
-int                             g_windowWidth                  = 1280;
-int                             g_windowHeight                 = 720;
-bool                            g_fullscreen                   = true;
-leia::sdk::Core*                g_sdk                          = nullptr;
-leia::sdk::InterlacerOpenGL*    g_interlacer                   = nullptr;
-eDemoMode                       g_demoMode                     = eDemoMode::Spinning3DCube;
-float                           g_geometryDist                 = 500;
-bool                            g_perspective                  = true;
-float                           g_perspectiveCameraFiledOfView = 90.0f * 3.14159f / 180.0f;
-float                           g_orthographicCameraHeight     = 500.0f;
-bool                            g_showGUI                      = true;
-
-int g_viewWidth = -1;
-int g_viewHeight = -1;
+const wchar_t*                          g_windowTitle                  = L"CNSDK Getting Started OpenGL Sample";
+const wchar_t*                          g_windowClass                  = L"CNSDKGettingStartedGLWindowClass";
+int                                     g_windowWidth                  = 1280;
+int                                     g_windowHeight                 = 720;
+bool                                    g_fullscreen                   = true;
+std::unique_ptr<leia::Core>             g_sdk                          = nullptr;
+std::unique_ptr<leia::InterlacerOpenGL> g_interlacer                   = nullptr;
+eDemoMode                               g_demoMode                     = eDemoMode::Spinning3DCube;
+float                                   g_geometryDist                 = 500;
+bool                                    g_perspective                  = true;
+float                                   g_perspectiveCameraFiledOfView = 90.0f * 3.14159f / 180.0f;
+float                                   g_orthographicCameraHeight     = 500.0f;
+bool                                    g_showGUI                      = true;
+int                                     g_viewWidth                    = -1;
+int                                     g_viewHeight                   = -1;
+bool                                    g_sRGB                         = true;
 
 // Global OpenGL Variables.
 GLuint g_shaderProgram     = 0;
@@ -260,6 +261,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     return 0;
+}
+
+float GetSRGB(float value)
+{
+    // If already in sRGB, no change.
+    if (g_sRGB)
+        return value;
+
+    // Convert linear->sRGB.
+    if (value <= 0.0f)
+        return 0.0f;
+    else if (value >= 1.0f)
+        return 1.0f;
+    else if (value <= 0.0031308f)
+        return value * 12.92f;
+    else
+        return 1.055f * pow(value, 1.0f / 2.4f) - 0.055f;
 }
 
 BOOL CALLBACK GetDefaultWindowStartPos_MonitorEnumProc(__in  HMONITOR hMonitor, __in  HDC hdcMonitor, __in  LPRECT lprcMonitor, __in  LPARAM dwData)
@@ -485,6 +503,9 @@ HGLRC InitializeOpenGL(HWND hWnd, HDC hDC)
         }
         exit(-1);
     }
+
+    if (g_sRGB)
+        glEnable(GL_FRAMEBUFFER_SRGB);
        
     return context;
 }
@@ -492,21 +513,25 @@ HGLRC InitializeOpenGL(HWND hWnd, HDC hDC)
 void InitializeCNSDK(HWND hWnd, HGLRC context)
 {
     // Initialize SDK.
-    leia::sdk::CoreInitConfiguration coreConfig;
+    leia::CoreInitConfiguration coreConfig(nullptr);
+    coreConfig.SetFaceTrackingServerLogLevel(kLeiaLogLevelTrace);
+    coreConfig.SetFaceTrackingEnable(true);
     coreConfig.SetPlatformLogLevel(kLeiaLogLevelDebug);
-    g_sdk = new leia::sdk::Core(coreConfig);
+    g_sdk = std::make_unique<leia::Core>(coreConfig);
 
     // Initialize interlacer.
-    leia::sdk::InterlacerInitConfiguration interlacerConfig;
+    leia::InterlacerInitConfiguration interlacerConfig;
     interlacerConfig.SetUseAtlasForViews(true);
-    g_interlacer = new leia::sdk::InterlacerOpenGL(*g_sdk, interlacerConfig, context);
+    g_interlacer = std::make_unique<leia::InterlacerOpenGL>(*g_sdk, interlacerConfig, context);
+    g_interlacer->SetSourceViewsSRGB(g_sRGB);
 
     // Initialize interlacer GUI.
     if (g_showGUI)
     {
-        leia::sdk::InterlacerDebugMenuConfiguration debugMenuInitArgs = {};
+        leia::InterlacerDebugMenuConfiguration debugMenuInitArgs = {};
         debugMenuInitArgs.gui.surface = hWnd;
-        g_interlacer->InitializeGui(&debugMenuInitArgs);
+        debugMenuInitArgs.gui.graphicsAPI = LEIA_GRAPHICS_API_OPENGL;
+        g_interlacer->InitializeGui(&debugMenuInitArgs, g_sRGB);
     }
 
     // Set stereo sliding mode.
@@ -605,14 +630,16 @@ void LoadScene()
             {4,7,6,5}  // top
         };
 
+        float c = GetSRGB(0.5f);
+
         static const float faceColors[6][3] =
         {
-            {1,0,0},
-            {0,1,0},
-            {0,0,1},
-            {1,1,0},
-            {0,1,1},
-            {1,0,1}
+            {c,0,0},
+            {0,c,0},
+            {0,0,c},
+            {c,c,0},
+            {0,c,c},
+            {c,0,c}
         };
 
         std::vector<float> verts;
@@ -748,7 +775,7 @@ void LoadScene()
 
         // Set texture properties and image data.
         GLenum aa= glGetError();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, g_sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         GLenum bb = glGetError();
 
         // Set wrap mode.
@@ -786,7 +813,7 @@ void InitializeOffscreenFrameBuffer()
             glBindTexture(GL_TEXTURE_2D, newTexture);
 
             // Set texture properties.
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, g_sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
             // Set wrap mode.
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -859,7 +886,7 @@ void Render(HDC hDC, float elapsedTime)
     {
         // Clear backbuffer to green.
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(0.0f, 0.4f, 0.0f, 1.0f);
+        glClearColor(GetSRGB(0.0f), GetSRGB(0.25f), GetSRGB(0.0f), GetSRGB(1.0f));
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         viewsTexture = g_imageTexture;
@@ -880,12 +907,12 @@ void Render(HDC hDC, float elapsedTime)
 
         // Clear backbuffer to green.
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(0.0f, 0.4f, 0.0f, 1.0f);
+        glClearColor(GetSRGB(0.0f), GetSRGB(0.25f), GetSRGB(0.0f), GetSRGB(1.0f));
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Clear offscreen render-target to blue
         glBindFramebuffer(GL_FRAMEBUFFER, g_stereoFrameBuffer);
-        glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
+        glClearColor(GetSRGB(0.0f), GetSRGB(0.0f), GetSRGB(0.25f), GetSRGB(1.0f));
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Render stereo views.
@@ -937,7 +964,7 @@ void Render(HDC hDC, float elapsedTime)
     // Perform interlacing.
     g_interlacer->SetOutputRenderTarget(0);
     g_interlacer->SetSourceViewsSize(viewWidth, viewHeight, true);
-    g_interlacer->SetInterlaceViewTextureAtlas(viewsTexture);
+    g_interlacer->SetSourceViews(viewsTexture);
     g_interlacer->DoPostProcess(g_windowWidth, g_windowHeight, false);
 
     // 
@@ -1055,8 +1082,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
     g_sdk->SetBacklight(false);
 
     // Cleanup.
-    delete g_interlacer;
-    delete g_sdk;
     wglDeleteContext(context);
 
     return 0;

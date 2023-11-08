@@ -1,0 +1,12 @@
+prefix=C:/Users/crohani/Documents/GitHub/CNSDK/build/_package
+exec_prefix=C:/Users/crohani/Documents/GitHub/CNSDK/build/_package
+libdir=C:/Users/crohani/Documents/GitHub/CNSDK/build/_package/lib
+includedir=C:/Users/crohani/Documents/GitHub/CNSDK/build/_package/include
+
+Name: libzmq
+Description: 0MQ c++ library
+Version: 4.3.4
+Libs: -L${libdir} -lzmq
+Libs.private: -lstdc++ 
+Requires.private: 
+Cflags: -I${includedir} 

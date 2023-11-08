@@ -1,16 +1,3 @@
-/*
- * Copyright 2023 (c) Leia Inc.  All rights reserved.
- *
- * NOTICE:  All information contained herein is, and remains
- * the property of Leia Inc. and its suppliers, if any.  The
- * intellectual and technical concepts contained herein are
- * proprietary to Leia Inc. and its suppliers and may be covered
- * by U.S. and Foreign Patents, patents in process, and are
- * protected by trade secret or copyright law.  Dissemination of
- * this information or reproduction of this materials strictly
- * forbidden unless prior written permission is obtained from
- * Leia Inc.
- */
 #ifndef CNSDK_LEIA_DEVICE_CONFIG_H
 #define CNSDK_LEIA_DEVICE_CONFIG_H
 
@@ -60,6 +47,9 @@ struct leia_device_config {
     float     facePredictLatencyMs;
     float     accelerationThreshold;
 
+    enum leia_orientation deviceNaturalOrientation;
+    enum leia_orientation cameraSensorOrientation;
+
     int32_t overlay;
     int32_t isOverlayDeviceSwitchable;
     float   smooth;
@@ -84,6 +74,8 @@ struct leia_device_config {
     char gShiftY[128];
     char bShiftX[128];
     char bShiftY[128];
+
+    struct leia_normalized_camera_intrinsics trackingCameraIntrinsics;
 };
 
 #pragma pack(pop)
